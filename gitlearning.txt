@@ -152,7 +152,7 @@ git checkout其实是用版本库里的版本替换工作区的版本，无论�
 关联后，使用命令git push -u origin master第一次推送master分支的所有内容；
 
 此后，每次本地提交后，只要有必要，就可以使用命令git push origin master推送最新修改；
-
+git push origin master
 分布式版本系统的最大好处之一是在本地工作完全不需要考虑远程库的存在，也就是有没有联网都可以正常工作，而SVN在没有联网的时候是拒绝干活的！当有网络的时候，再把本地提交推送一下就完成了同步，真是太方便了！
 ```
 
@@ -179,3 +179,228 @@ Git鼓励大量使用分支：
 合并某分支到当前分支：git merge <name>
 
 删除分支：git branch -d <name>
+
+``` 解决gitmerge冲突
+小结
+当Git无法自动合并分支时，就必须首先解决冲突。解决冲突后，再提交，合并完成。
+
+解决冲突就是把Git合并失败的文件手动编辑为我们希望的内容，再提交。
+
+用git log --graph命令可以看到分支合并图。
+```
+
+###多人协作
+当你从远程仓库克隆时，实际上Git自动把本地的master分支和远程的master分支对应起来了，并且，远程仓库的默认名称是origin。
+
+要查看远程库的信息，用git remote：
+
+$ git remote
+origin
+或者，用git remote -v显示更详细的信息：
+
+$ git remote -v
+上面显示了可以抓取和推送的origin的地址。如果没有推送权限，就看不到push的地址。
+推送分支
+推送分支，就是把该分支上的所有本地提交推送到远程库。推送时，要指定本地分支，这样，Git就会把该分支推送到远程库对应的远程分支上：
+
+$ git push origin master
+如果要推送其他分支，比如dev，就改成：
+
+$ git push origin dev
+但是，并不是一定要把本地分支往远程推送，那么，哪些分支需要推送，哪些不需要呢？
+
+master分支是主分支，因此要时刻与远程同步；
+
+dev分支是开发分支，团队所有成员都需要在上面工作，所以也需要与远程同步；
+
+bug分支只用于在本地修复bug，就没必要推到远程了，除非老板要看看你每周到底修复了几个bug；
+
+feature分支是否推到远程，取决于你是否和你的小伙伴合作在上面开发。
+
+总之，就是在Git中，分支完全可以在本地自己藏着玩，是否推送，视你的心情而定！
+###抓取分支
+多人协作时，大家都会往master和dev分支上推送各自的修改。
+
+现在，模拟一个你的小伙伴，可以在另一台电脑（注意要把SSH Key添加到GitHub）或者同一台电脑的另一个目录下克隆：
+
+$ git clone git@github.com:michaelliao/learngit.git
+Cloning into 'learngit'...
+remote: Counting objects: 40, done.
+remote: Compressing objects: 100% (21/21), done.
+remote: Total 40 (delta 14), reused 40 (delta 14), pack-reused 0
+Receiving objects: 100% (40/40), done.
+Resolving deltas: 100% (14/14), done.
+当你的小伙伴从远程库clone时，默认情况下，你的小伙伴只能看到本地的master分支。用git  branch查看
+现在，你的小伙伴要在dev分支上开发，就必须创建远程origin的dev分支到本地，于是他用这个命令创建本地dev分支：
+
+$ git checkout -b dev origin/dev
+现在，他就可以在dev上继续修改，然后，时不时地把dev分支push到远程：
+
+$ git add env.txt
+$ git commit -m "add env"
+$ git push origin dev
+
+你的小伙伴已经向origin/dev分支推送了他的提交，而碰巧你也对同样的文件作了修改，并试图推送：
+
+$ cat env.txt
+$ git add env.txt
+
+$ git commit -m "add new env"
+$ git push origin dev
+推送失败，因为你的小伙伴的最新提交和你试图推送的提交有冲突，解决办法也很简单，Git已经提示我们，先用git pull把最新的提交从origin/dev抓下来，然后，在本地合并，解决冲突，再推送：
+$ git pull
+git pull也失败了，原因是没有指定本地dev分支与远程origin/dev分支的链接，根据提示，设置dev和origin/dev的链接：
+$ git branch --set-upstream-to=origin/dev dev
+再pull：
+
+$ git pull
+这回git pull成功，但是合并有冲突，需要手动解决，解决的方法和分支管理中的解决冲突完全一样。解决后，提交，再push：
+$ git commit -m "fix env conflict"
+$ git push origin dev
+因此，多人协作的工作模式通常是这样：
+
+首先，可以试图用git push origin <branch-name>推送自己的修改；
+
+如果推送失败，则因为远程分支比你的本地更新，需要先用git pull试图合并；
+
+如果合并有冲突，则解决冲突，并在本地提交；
+
+没有冲突或者解决掉冲突后，再用git push origin <branch-name>推送就能成功！
+
+如果git pull提示no tracking information，则说明本地分支和远程分支的链接关系没有创建，用命令git branch --set-upstream-to <branch-name> origin/<branch-name>。
+或者git branch --set-upstream-to=origin/dev dev 
+
+这就是多人协作的工作模式，一旦熟悉了，就非常简单。
+```
+小结
+查看远程库信息，使用git remote -v；
+
+本地新建的分支如果不推送到远程，对其他人就是不可见的；
+
+从本地推送分支，使用git push origin branch-name，如果推送失败，先用git pull抓取远程的新提交；
+
+在本地创建和远程分支对应的分支，使用git checkout -b branch-name origin/branch-name，本地和远程分支的名称最好一致；
+
+建立本地分支和远程分支的关联，使用git branch --set-upstream branch-name origin/branch-name；
+
+从远程抓取分支，使用git pull，如果有冲突，要先处理冲突
+````
+
+
+
+发布一个版本时，我们通常先在版本库中打一个标签（tag），这样，就唯一确定了打标签时刻的版本。将来无论什么时候，取某个标签的版本，就是把那个打标签的时刻的历史版本取出来。所以，标签也是版本库的一个快照。
+
+Git的标签虽然是版本库的快照，但其实它就是指向某个commit的指针（跟分支很像对不对？但是分支可以移动，标签不能移动），所以，创建和删除标签都是瞬间完成的。
+在Git中打标签非常简单，首先，切换到需要打标签的分支上：
+
+$ git branch
+$ git checkout master
+然后，敲命令git tag <name>就可以打一个新标签：
+
+$ git tag v1.0
+可以用命令git tag查看所有标签：
+
+$ git tag
+默认标签是打在最新提交的commit上的。有时候，如果忘了打标签，比如，现在已经是周五了，但应该在周一打的标签没有打，怎么办？
+
+方法是找到历史提交的commit id，然后打上就可以了：
+
+$ git log --pretty=oneline --abbrev-commit
+比方说要对add merge这次提交打标签，它对应的commit id是f52c633，敲入命令：
+
+$ git tag v0.9 f52c633
+再用命令git tag查看标签：
+
+$ git tag
+注意，标签不是按时间顺序列出，而是按字母排序的。可以用git show <tagname>查看标签信息：
+
+$ git show v0.9
+可以看到，v0.9确实打在add merge这次提交上。
+
+还可以创建带有说明的标签，用-a指定标签名，-m指定说明文字：
+
+$ git tag -a v0.1 -m "version 0.1 released" 1094adb
+用命令git show <tagname>可以看到说明文字：
+
+$ git show v0.1
+ 注意：标签总是和某个commit挂钩。如果这个commit既出现在master分支，又出现在dev分支，那么在这两个分支上都可以看到这个标签。
+```
+小结
+命令git tag <tagname>用于新建一个标签，默认为HEAD，也可以指定一个commit id；
+
+命令git tag -a <tagname> -m "blablabla..."可以指定标签信息；
+
+命令git tag可以查看所有标签。
+```
+
+如果标签打错了，也可以删除：
+
+$ git tag -d v0.1
+ 因为创建的标签都只存储在本地，不会自动推送到远程。所以，打错的标签可以在本地安全删除。
+
+如果要推送某个标签到远程，使用命令git push origin <tagname>：
+
+$ git push origin v1.0
+或者，一次性推送全部尚未推送到远程的本地标签：
+
+$ git push origin --tags
+如果标签已经推送到远程，要删除远程标签就麻烦一点，先从本地删除：
+
+$ git tag -d v0.9
+然后，从远程删除。删除命令也是push，但是格式如下：
+
+$ git push origin :refs/tags/v0.9
+要看看是否真的从远程库删除了标签，可以登陆GitHub查看。
+```
+小结
+命令git push origin <tagname>可以推送一个本地标签；
+
+命令git push origin --tags可以推送全部未推送过的本地标签；
+
+命令git tag -d <tagname>可以删除一个本地标签；
+
+命令git push origin :refs/tags/<tagname>可以删除一个远程标签。
+```
+
+我们一直用GitHub作为免费的远程仓库，如果是个人的开源项目，放到GitHub上是完全没有问题的。其实GitHub还是一个开源协作社区，通过GitHub，既可以让别人参与你的开源项目，也可以参与别人的开源项目。
+
+在GitHub出现以前，开源项目开源容易，但让广大人民群众参与进来比较困难，因为要参与，就要提交代码，而给每个想提交代码的群众都开一个账号那是不现实的，因此，群众也仅限于报个bug，即使能改掉bug，也只能把diff文件用邮件发过去，很不方便。
+
+但是在GitHub上，利用Git极其强大的克隆和分支功能，广大人民群众真正可以第一次自由参与各种开源项目了。
+
+如何参与一个开源项目呢？比如人气极高的bootstrap项目，这是一个非常强大的CSS框架，你可以访问它的项目主页https://github.com/twbs/bootstrap，点“Fork”就在自己的账号下克隆了一个bootstrap仓库，然后，从自己的账号下clone：
+
+git clone git@github.com:michaelliao/bootstrap.git
+一定要从自己的账号下clone仓库，这样你才能推送修改。如果从bootstrap的作者的仓库地址git@github.com:twbs/bootstrap.git克隆，因为没有权限，你将不能推送修改。
+
+Bootstrap的官方仓库twbs/bootstrap、你在GitHub上克隆的仓库my/bootstrap，以及你自己克隆到本地电脑的仓库，他们的关系就像下图显示的那样：
+
+如果你想修复bootstrap的一个bug，或者新增一个功能，立刻就可以开始干活，干完后，往自己的仓库推送。
+
+如果你希望bootstrap的官方库能接受你的修改，你就可以在GitHub上发起一个pull request。当然，对方是否接受你的pull request就不一定了。
+
+如果你没能力修改bootstrap，但又想要试一把pull request，那就Fork一下我的仓库：https://github.com/michaelliao/learngit，创建一个your-github-id.txt的文本文件，写点自己学习Git的心得，然后推送一个pull request给我，我会视心情而定是否接受。
+
+```
+小结
+在GitHub上，可以任意Fork开源仓库；
+
+自己拥有Fork后的仓库的读写权限；
+
+可以推送pull request给官方仓库来贡献代码。
+```
+
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+
+
+
+
